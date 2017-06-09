@@ -1,0 +1,10 @@
+.row1{
+	display: flex;
+}
+
+.col1, .col2, .col3,
+.col4, .col5
+{
+	width: 20%;
+	/*flex: 1;*/
+}
