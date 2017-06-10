@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Train Schedule</title>
+	<!-- Added Moment JS -->
+  <script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
+	<!-- jQuery Link -->
+  <script src="https://code.jquery.com/jquery.js"></script>
+
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<!-- Bootstrap CDN -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<!-- Bootstrap Javascript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<!-- Local Style Page -->
+	<link rel="stylesheet" href="style.css">
+
+	<script src="https://www.gstatic.com/firebasejs/4.1.2/firebase.js"></script>
+
+	
+</head>
+<body>
+	<div class="container">
+		<div class="jumbotron text-center">
+	  	<h1>Train Scheduler</h1>
+  	</div>
+
+  <div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Current Train Schedule</h3>
+	  </div>
+	  <div class="panel-body" id="trainList">
+	    <div class="row">
+	    	<div class="col-xs-3">
+	    		<strong>Train Name</strong>
+	    	</div>
+	    	<div class=" col-xs-3">
+	    		<strong>Destination</strong>
+	    	</div>
+	    	<div class="col-xs-2">
+	    		<strong>Frequency (min)</strong>
+	    	</div>
+	    	<div class="col-xs-2">
+	    		<strong>Next Arrival</strong>
+	    	</div class="col-xs-2">
+	    	<div>
+	    		<strong>Minutes Away</strong>
+	    	</div>
+			</div><hr>
+	   </div>
+	 </div>
+	 
+	
+
+	<div class="panel panel-default">
+	  <div class="panel-heading">
+	    <h3 class="panel-title">Add Train</h3>
+	  </div>
+	  <div class="panel-body">
+	  	<form>
+				<div class="form-group">
+					<label for="trainName">Train Name</label>
+					<input type="text" class="form-control" id="trainNameInput">
+				</div>
+				<div class="form-group">
+					<label for="destination">Destination</label>
+					<input type="text" class="form-control" id="destinationInput">
+				</div>
+					<div class="form-group">
+					<label for="firstTrainTime">First Train Time (HH:mm-military time)</label>
+					<input type="text" class="form-control" id="firstTrainTimeInput">
+				</div>
+					<div class="form-group">
+					<label for="trainFrequency">Frequency (min)</label>
+					<input type="text" class="form-control" id="frequencyInput">
+				</div>
+				<button class="btn btn-primary" id="submit" type="submit">Submit</button>
+			</form>	    
+	  </div>
+	</div>
+	
+
+	</div>
+	<script>
+		// Initialize Firebase
+	  var config = {
+	    apiKey: "AIzaSyACGRSunfkMkTYEJMwXl_qBv3h47U9U368",
+	    authDomain: "train-schedule-dff9c.firebaseapp.com",
+	    databaseURL: "https://train-schedule-dff9c.firebaseio.com",
+	    projectId: "train-schedule-dff9c",
+	    storageBucket: "train-schedule-dff9c.appspot.com",
+	    messagingSenderId: "1017718111684"
+	  };
+	  firebase.initializeApp(config);
+
+	  var database = firebase.database();
+
+	
+
+	  database.ref().on("child_added", function(childSnapshot){
+	  	// console.log(childSnapshot.val().destination);
+	  	  //declare the current time
+	  	var firstTime = childSnapshot.val().firstTrain;
+	  	// console.log(firstTime);
+	  	var firstTimeConverted = moment(firstTime, "HH:mm");
+	  	console.log(firstTimeConverted);
+	  	var currentTime = moment().format();
+   		console.log(currentTime);
+   		// var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+   		var timeDifference = moment().diff(moment(firstTimeConverted), "minutes");// -
+   		console.log(timeDifference);
+
+   		var frequencyMinutes = childSnapshot.val().frequency;
+   		console.log("frequency minutes" + frequencyMinutes);
+   		var minutesAway = Math.abs(timeDifference % frequencyMinutes);
+  
+   		console.log("minutes away: " + minutesAway);
+
+   		var nextArrival = moment(currentTime).add(minutesAway, "minutes").format("hh:mm A");
+   		console.log("next arrival " + nextArrival);
+
+
+	  	$('#trainList').append('<div class="row"><div class="col-xs-3">' + childSnapshot.val().trainName + 
+	  		'</div><div class="col-xs-3">' + childSnapshot.val().destination + '</div><div class="col-xs-2">' + childSnapshot.val().frequency + '</div><div class="col-xs-2">' + nextArrival + '</div><div class="col-xs-2">' + minutesAway + '</div></div><hr>');
+
+	  }, function(errorObject){
+	  	console.log('The read failed: ' + errorObject.code);
+	  });
+
+	  
+
+	  //submit button function
+	  $('#submit').on("click", function(event){
+	  	event.preventDefault();
+
+	  	var trainAdd = $('#trainNameInput').val().trim();
+	  	var destinationAdd = $('#destinationInput').val().trim();
+	  	var firstTrainTime = $('#firstTrainTimeInput').val().trim();
+	  	var trainFrequency = $('#frequencyInput').val().trim();
+
+	  	//empty inputs after the value is taken
+	  	$('#trainNameInput').val("");
+	  	$('#destinationInput').val("");
+	  	$('#firstTrainTimeInput').val("");
+	  	$('#frequencyInput').val("");
+
+
+
+	  	console.log(trainAdd);
+	  	console.log(destinationAdd);
+	  	console.log(firstTrainTime);
+	  	console.log(trainFrequency);
+
+	  	database.ref().push({
+	  	trainName: trainAdd,
+	  	destination: destinationAdd,
+	  	firstTrain: firstTrainTime,
+	  	frequency: trainFrequency,
+	  	dateAdded: firebase.database.ServerValue.TIMESTAMP
+	  	});
+	  });
+
+
+
+
+
+
+	</script>
+
+  
+</body>
+</html>
